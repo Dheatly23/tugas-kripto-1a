@@ -1,0 +1,80 @@
+.tabbed_dialog {
+  width: min-content;
+
+  > .header {
+    > button {
+      $roundness: 5px;
+
+      flex: 1 0 max-content;
+      padding-inline: 5px;
+
+      border: black 1px solid;
+      border-radius: $roundness $roundness 0 0;
+    }
+
+    > :not(:last-child) {
+      margin-right: -1px;
+    }
+
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+
+    width: 100%;
+    margin-bottom: -1px;
+  }
+
+  > .tab {
+    $roundness: 5px;
+
+    border: black 1px solid;
+    border-radius: 0 0 $roundness $roundness;
+  }
+}
+
+.cipher_box {
+  padding: 10px;
+
+  > .key_container {
+    > input {
+      margin-left: 30px;
+      width: 100%;
+
+      font-family: monospace;
+    }
+
+    display: flex;
+    flex-direction: row;
+  }
+
+  > .action_container {
+    > button {
+      margin-left: 5px;
+      margin-right: 5px;
+    }
+
+    display: flex;
+    flex-direction: row;
+  }
+
+  > textarea {
+    width: 100%;
+    min-width: min-content;
+
+    &.error {
+      background: #FFCCCC;
+    }
+  }
+
+  > * {
+    display: block;
+  }
+
+  > :not(:last-child) {
+    margin-bottom: 10px;
+  }
+
+  > :not(:first-child) {
+    margin-top: 10px;
+  }
+}
