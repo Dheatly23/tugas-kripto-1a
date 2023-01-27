@@ -1,19 +1,35 @@
 .tabbed_dialog {
-  width: min-content;
-
   > .header {
     > button {
       $roundness: 5px;
 
       flex: 1 0 max-content;
-      padding-inline: 5px;
+      padding: 5px;
 
       border: black 1px solid;
       border-radius: $roundness $roundness 0 0;
+
+      background: #CCCCCC;
+
+      &:hover {
+        background: #FFFFFF;
+      }
     }
 
     > :not(:last-child) {
       margin-right: -1px;
+    }
+
+    > button.selected_tab {
+      background: #FFFFFF;
+
+      text-decoration: underline;
+
+      &:hover {
+        color: #666666;
+
+        border-color: #666666;
+      }
     }
 
     display: flex;
@@ -30,6 +46,8 @@
     border: black 1px solid;
     border-radius: 0 0 $roundness $roundness;
   }
+
+  width: min-content;
 }
 
 .cipher_box {

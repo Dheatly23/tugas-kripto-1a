@@ -32,10 +32,14 @@ pub fn tabbed_dialog(props: &TabbedDialogProps) -> Html {
         .iter()
         .enumerate()
         .map(|(i, v)| {
+            let selected =
+                selected_tab.and_then(|j| if i == j { Some("selected_tab") } else { None });
+
             let selected_tab = selected_tab.clone();
             let on_click = Callback::from(move |_| selected_tab.set(Some(i)));
+
             html! {
-                <button onclick={on_click}>
+                <button onclick={ on_click } class={ classes!(selected) }>
                     { v }
                 </button>
             }
@@ -230,7 +234,7 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
         let input = input.clone();
         let textbox = textbox.clone();
         let output = output.clone();
-        //let err_happened = err_happened.setter();
+        let err_happened = err_happened.setter();
 
         let encryptor = props.encryptor.clone();
         let decryptor = props.decryptor.clone();
@@ -260,6 +264,7 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
 
                 let encryptor = encryptor.clone();
                 let decryptor = decryptor.clone();
+                let err_happened = err_happened.clone();
 
                 spawn_local(async move {
                     let data = match JsFuture::from(f.array_buffer()).await {
@@ -277,6 +282,7 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
                         Operator::Decrypt => decrypt(decryptor.emit(key), data.into_iter()),
                     };
 
+                    err_happened.set(out.is_err());
                     if let Ok(v) = out {
                         output.set_value(&String::from_iter(v.iter().map(|&b| b as char)));
                     } else {
