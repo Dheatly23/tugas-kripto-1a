@@ -35,14 +35,18 @@ pub trait Encryptor {
         Self: Sized,
         C: Encryptor,
     {
-        Chain::new(self, other)
+        Chain {
+            child_1: self,
+            child_2: other,
+            temp: Vec::new(),
+        }
     }
 
     fn invert(self) -> Invert<Self>
     where
         Self: Sized,
     {
-        Invert::new(self)
+        Invert(self)
     }
 
     fn map<F>(self, f: F) -> Map<Self, F>
@@ -79,14 +83,18 @@ pub trait Decryptor {
         Self: Sized,
         D: Decryptor,
     {
-        Chain::new(self, other)
+        Chain {
+            child_1: self,
+            child_2: other,
+            temp: Vec::new(),
+        }
     }
 
     fn invert(self) -> Invert<Self>
     where
         Self: Sized,
     {
-        Invert::new(self)
+        Invert(self)
     }
 
     fn map<F>(self, f: F) -> Map<Self, F>
@@ -119,16 +127,6 @@ pub struct Chain<C1, C2> {
     child_1: C1,
     child_2: C2,
     temp: Vec<u8>,
-}
-
-impl<C1, C2> Chain<C1, C2> {
-    fn new(child_1: C1, child_2: C2) -> Self {
-        Self {
-            child_1,
-            child_2,
-            temp: Vec::new(),
-        }
-    }
 }
 
 impl<C1: Encryptor, C2: Encryptor> Encryptor for Chain<C1, C2> {
@@ -185,12 +183,6 @@ impl<C1: Decryptor, C2: Decryptor> Decryptor for Chain<C1, C2> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Invert<T>(T);
-
-impl<T> Invert<T> {
-    fn new(v: T) -> Self {
-        Self(v)
-    }
-}
 
 impl<T: Encryptor> Decryptor for Invert<T> {
     fn decrypt_byte(&mut self, byte: u8) -> Result<&[u8], CipherError> {
