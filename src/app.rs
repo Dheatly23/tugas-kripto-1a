@@ -1,3 +1,6 @@
+use js_sys::JsString;
+use wasm_bindgen::JsCast;
+use wasm_bindgen_futures::{spawn_local, JsFuture};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
@@ -124,13 +127,14 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
         }
     }
 
+    let file_input = use_node_ref();
     let input = use_node_ref();
     let textbox = use_node_ref();
     let output = use_node_ref();
 
     let err_happened = use_state_eq(|| false);
 
-    let encrypt = {
+    let encrypt_ = {
         let input = input.clone();
         let textbox = textbox.clone();
         let output = output.clone();
@@ -159,7 +163,7 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
         })
     };
 
-    let decrypt = {
+    let decrypt_ = {
         let input = input.clone();
         let textbox = textbox.clone();
         let output = output.clone();
@@ -188,6 +192,98 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
         })
     };
 
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    enum Operator {
+        Encrypt,
+        Decrypt,
+    }
+
+    let operator = use_state_eq(|| Operator::Encrypt);
+
+    let encrypt_file = {
+        let file_input = file_input.clone();
+        let operator = operator.clone();
+
+        Callback::from(move |_| {
+            if let Some(file_input) = file_input.cast::<HtmlInputElement>() {
+                operator.set(Operator::Encrypt);
+                file_input.click();
+            }
+        })
+    };
+
+    let decrypt_file = {
+        let file_input = file_input.clone();
+        let operator = operator.clone();
+
+        Callback::from(move |_| {
+            if let Some(file_input) = file_input.cast::<HtmlInputElement>() {
+                operator.set(Operator::Decrypt);
+                file_input.click();
+            }
+        })
+    };
+
+    let execute_file = {
+        let file_input = file_input.clone();
+        let input = input.clone();
+        let textbox = textbox.clone();
+        let output = output.clone();
+        //let err_happened = err_happened.setter();
+
+        let encryptor = props.encryptor.clone();
+        let decryptor = props.decryptor.clone();
+
+        let operator = operator.clone();
+
+        Callback::from(move |_| {
+            let operator = *operator;
+
+            let (Some(file_input), Some(input), Some(textbox), Some(output)) = (
+                    file_input.cast::<HtmlInputElement>(),
+                    input.cast::<HtmlInputElement>(),
+                    textbox.cast::<HtmlTextAreaElement>(),
+                    output.cast::<HtmlTextAreaElement>(),
+                ) else {return};
+
+            let f = match file_input.files() {
+                Some(files) => match files.get(0) {
+                    Some(f) => f,
+                    None => return,
+                },
+                None => return,
+            };
+
+            let key = input.value();
+
+            let encryptor = encryptor.clone();
+            let decryptor = decryptor.clone();
+
+            spawn_local(async move {
+                let data = match JsFuture::from(f.text()).await {
+                    Ok(v) => String::from(v.unchecked_into::<JsString>()),
+                    Err(e) => {
+                        web_sys::console::log_1(&e);
+                        return;
+                    }
+                };
+
+                textbox.set_value(&data);
+
+                let out = match operator {
+                    Operator::Encrypt => encrypt(encryptor.emit(key), data.chars().map(|c| c as _)),
+                    Operator::Decrypt => decrypt(decryptor.emit(key), data.chars().map(|c| c as _)),
+                };
+
+                if let Ok(v) = out {
+                    output.set_value(&String::from_iter(v.iter().map(|&b| b as char)));
+                } else {
+                    output.set_value("Error processing");
+                }
+            });
+        })
+    };
+
     html! {
         <div class="cipher_box">
             <div class="key_container">
@@ -202,8 +298,11 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
                 style="resize: none;"
             />
             <div class="action_container">
-                <button onclick={encrypt}> { "Encrypt" } </button>
-                <button onclick={decrypt}> { "Decrypt" } </button>
+                <button onclick={encrypt_}> { "Encrypt" } </button>
+                <button onclick={decrypt_}> { "Decrypt" } </button>
+                <button onclick={encrypt_file}> { "Encrypt File" } </button>
+                <button onclick={decrypt_file}> { "Decrypt File" } </button>
+                <input ref={file_input} type="file" hidden=true onchange={execute_file}/>
             </div>
         </div>
     }
