@@ -1,5 +1,4 @@
-use js_sys::JsString;
-use wasm_bindgen::JsCast;
+use js_sys::Uint8Array;
 use wasm_bindgen_futures::{spawn_local, JsFuture};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
@@ -263,23 +262,19 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
                 let decryptor = decryptor.clone();
 
                 spawn_local(async move {
-                    let data = match JsFuture::from(f.text()).await {
-                        Ok(v) => String::from(v.unchecked_into::<JsString>()),
+                    let data = match JsFuture::from(f.array_buffer()).await {
+                        Ok(v) => Uint8Array::new(&v).to_vec(),
                         Err(e) => {
                             web_sys::console::log_1(&e);
                             return;
                         }
                     };
 
-                    textbox.set_value(&data);
+                    textbox.set_value(&String::from_iter(data.iter().map(|&b| b as char)));
 
                     let out = match operator {
-                        Operator::Encrypt => {
-                            encrypt(encryptor.emit(key), data.chars().map(|c| c as _))
-                        }
-                        Operator::Decrypt => {
-                            decrypt(decryptor.emit(key), data.chars().map(|c| c as _))
-                        }
+                        Operator::Encrypt => encrypt(encryptor.emit(key), data.into_iter()),
+                        Operator::Decrypt => decrypt(decryptor.emit(key), data.into_iter()),
                     };
 
                     if let Ok(v) = out {
