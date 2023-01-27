@@ -207,7 +207,8 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
         Callback::from(move |_| {
             if let Some(file_input) = file_input.cast::<HtmlInputElement>() {
                 operator.set(Operator::Encrypt);
-                file_input.click();
+                let file_input = file_input.clone();
+                spawn_local(async move { file_input.click() });
             }
         })
     };
@@ -219,7 +220,8 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
         Callback::from(move |_| {
             if let Some(file_input) = file_input.cast::<HtmlInputElement>() {
                 operator.set(Operator::Decrypt);
-                file_input.click();
+                let file_input = file_input.clone();
+                spawn_local(async move { file_input.click() });
             }
         })
     };
@@ -236,52 +238,59 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
 
         let operator = operator.clone();
 
-        Callback::from(move |_| {
-            let operator = *operator;
+        use_callback(
+            move |_, operator| {
+                let operator = **operator;
 
-            let (Some(file_input), Some(input), Some(textbox), Some(output)) = (
+                let (Some(file_input), Some(input), Some(textbox), Some(output)) = (
                     file_input.cast::<HtmlInputElement>(),
                     input.cast::<HtmlInputElement>(),
                     textbox.cast::<HtmlTextAreaElement>(),
                     output.cast::<HtmlTextAreaElement>(),
                 ) else {return};
 
-            let f = match file_input.files() {
-                Some(files) => match files.get(0) {
-                    Some(f) => f,
+                let f = match file_input.files() {
+                    Some(files) => match files.get(0) {
+                        Some(f) => f,
+                        None => return,
+                    },
                     None => return,
-                },
-                None => return,
-            };
+                };
 
-            let key = input.value();
+                let key = input.value();
 
-            let encryptor = encryptor.clone();
-            let decryptor = decryptor.clone();
+                let encryptor = encryptor.clone();
+                let decryptor = decryptor.clone();
 
-            spawn_local(async move {
-                let data = match JsFuture::from(f.text()).await {
-                    Ok(v) => String::from(v.unchecked_into::<JsString>()),
-                    Err(e) => {
-                        web_sys::console::log_1(&e);
-                        return;
+                spawn_local(async move {
+                    let data = match JsFuture::from(f.text()).await {
+                        Ok(v) => String::from(v.unchecked_into::<JsString>()),
+                        Err(e) => {
+                            web_sys::console::log_1(&e);
+                            return;
+                        }
+                    };
+
+                    textbox.set_value(&data);
+
+                    let out = match operator {
+                        Operator::Encrypt => {
+                            encrypt(encryptor.emit(key), data.chars().map(|c| c as _))
+                        }
+                        Operator::Decrypt => {
+                            decrypt(decryptor.emit(key), data.chars().map(|c| c as _))
+                        }
+                    };
+
+                    if let Ok(v) = out {
+                        output.set_value(&String::from_iter(v.iter().map(|&b| b as char)));
+                    } else {
+                        output.set_value("Error processing");
                     }
-                };
-
-                textbox.set_value(&data);
-
-                let out = match operator {
-                    Operator::Encrypt => encrypt(encryptor.emit(key), data.chars().map(|c| c as _)),
-                    Operator::Decrypt => decrypt(decryptor.emit(key), data.chars().map(|c| c as _)),
-                };
-
-                if let Ok(v) = out {
-                    output.set_value(&String::from_iter(v.iter().map(|&b| b as char)));
-                } else {
-                    output.set_value("Error processing");
-                }
-            });
-        })
+                });
+            },
+            operator,
+        )
     };
 
     html! {
