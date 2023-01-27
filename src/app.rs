@@ -320,7 +320,7 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
 
 #[function_component(App)]
 pub fn app() -> Html {
-    let tabs: Vec<_> = ["Tab 1", "Tab 2", "Tab 3"]
+    let tabs: Vec<_> = ["Vigenere", "Vigenere (Autokey)", "Vigenere (8-bit)"]
         .into_iter()
         .map(AttrValue::from)
         .collect();
@@ -330,6 +330,31 @@ pub fn app() -> Html {
             Callback<String, Box<dyn Encryptor>>,
             Callback<String, Box<dyn Decryptor>>,
         ) = match v {
+            Some(v @ 2) => {
+                fn f(key: String) -> impl Encryptor + Decryptor {
+                    Vignere256::new(key.as_bytes())
+                }
+
+                (
+                    v,
+                    Callback::from(|k| Box::new(f(k)) as _),
+                    Callback::from(|k| Box::new(f(k)) as _),
+                )
+            }
+            Some(v @ 1) => {
+                fn f(key: String) -> impl Encryptor + Decryptor {
+                    <_ as Encryptor>::filter(
+                        VignereAutokey::new(key.as_bytes()),
+                        |b| matches!(b as char, 'A'..='Z' | 'a'..='z'),
+                    )
+                }
+
+                (
+                    v,
+                    Callback::from(|k| Box::new(f(k)) as _),
+                    Callback::from(|k| Box::new(f(k)) as _),
+                )
+            }
             _ => {
                 fn f(key: String) -> impl Encryptor + Decryptor {
                     <_ as Encryptor>::filter(
