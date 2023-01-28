@@ -62,8 +62,8 @@ pub fn tabbed_dialog(props: &TabbedDialogProps) -> Html {
 
 #[derive(Properties, PartialEq)]
 pub struct CipherBoxProps {
-    encryptor: Callback<String, Box<dyn Encryptor>>,
-    decryptor: Callback<String, Box<dyn Decryptor>>,
+    encryptor: Callback<String, Result<Box<dyn Encryptor>, AttrValue>>,
+    decryptor: Callback<String, Result<Box<dyn Decryptor>, AttrValue>>,
 }
 
 #[function_component(CipherBox)]
@@ -152,7 +152,14 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
                 output.cast::<HtmlTextAreaElement>(),
             ) {
                 let key = input.value();
-                let e = encryptor.emit(key);
+                let e = match encryptor.emit(key) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        err_happened.set(true);
+                        output.set_value(&format!("Error, {}", e));
+                        return;
+                    }
+                };
 
                 let plain = textbox.value();
                 let cipher = encrypt(e, plain.chars().map(|c| c as _));
@@ -181,7 +188,14 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
                 output.cast::<HtmlTextAreaElement>(),
             ) {
                 let key = input.value();
-                let d = decryptor.emit(key);
+                let d = match decryptor.emit(key) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        err_happened.set(true);
+                        output.set_value(&format!("Error, {}", e));
+                        return;
+                    }
+                };
 
                 let cipher = textbox.value();
                 let plain = decrypt(d, cipher.chars().map(|c| c as _));
@@ -278,8 +292,28 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
                     textbox.set_value(&String::from_iter(data.iter().map(|&b| b as char)));
 
                     let out = match operator {
-                        Operator::Encrypt => encrypt(encryptor.emit(key), data.into_iter()),
-                        Operator::Decrypt => decrypt(decryptor.emit(key), data.into_iter()),
+                        Operator::Encrypt => encrypt(
+                            match encryptor.emit(key) {
+                                Ok(v) => v,
+                                Err(e) => {
+                                    err_happened.set(true);
+                                    output.set_value(&format!("Error, {}", e));
+                                    return;
+                                }
+                            },
+                            data.into_iter(),
+                        ),
+                        Operator::Decrypt => decrypt(
+                            match decryptor.emit(key) {
+                                Ok(v) => v,
+                                Err(e) => {
+                                    err_happened.set(true);
+                                    output.set_value(&format!("Error, {}", e));
+                                    return;
+                                }
+                            },
+                            data.into_iter(),
+                        ),
                     };
 
                     err_happened.set(out.is_err());
@@ -320,53 +354,72 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
 
 #[function_component(App)]
 pub fn app() -> Html {
-    let tabs: Vec<_> = ["Vigenere", "Vigenere (Autokey)", "Vigenere (8-bit)"]
-        .into_iter()
-        .map(AttrValue::from)
-        .collect();
+    let tabs: Vec<_> = [
+        "Vigenere",
+        "Vigenere (Autokey)",
+        "Vigenere (8-bit)",
+        "Playfair",
+    ]
+    .into_iter()
+    .map(AttrValue::from)
+    .collect();
     let tab_body = Callback::from(|v: Option<usize>| -> Html {
         let (v, cb_e, cb_d): (
             _,
-            Callback<String, Box<dyn Encryptor>>,
-            Callback<String, Box<dyn Decryptor>>,
+            Callback<String, Result<Box<dyn Encryptor>, AttrValue>>,
+            Callback<String, Result<Box<dyn Decryptor>, AttrValue>>,
         ) = match v {
-            Some(v @ 2) => {
-                fn f(key: String) -> impl Encryptor + Decryptor {
-                    Vignere256::new(key.as_bytes())
+            Some(v @ 1) => {
+                fn f(key: String) -> Result<impl Encryptor + Decryptor, AttrValue> {
+                    Ok(<_ as Encryptor>::filter(
+                        VignereAutokey::new(key.as_bytes())?,
+                        |b| matches!(b as char, 'A'..='Z' | 'a'..='z'),
+                    ))
                 }
 
                 (
                     v,
-                    Callback::from(|k| Box::new(f(k)) as _),
-                    Callback::from(|k| Box::new(f(k)) as _),
+                    Callback::from(|k| Ok(Box::new(f(k)?) as _)),
+                    Callback::from(|k| Ok(Box::new(f(k)?) as _)),
                 )
             }
-            Some(v @ 1) => {
-                fn f(key: String) -> impl Encryptor + Decryptor {
-                    <_ as Encryptor>::filter(
-                        VignereAutokey::new(key.as_bytes()),
-                        |b| matches!(b as char, 'A'..='Z' | 'a'..='z'),
-                    )
+            Some(v @ 2) => {
+                fn f(key: String) -> Result<impl Encryptor + Decryptor, AttrValue> {
+                    Ok(Vignere256::new(key.as_bytes())?)
                 }
 
                 (
                     v,
-                    Callback::from(|k| Box::new(f(k)) as _),
-                    Callback::from(|k| Box::new(f(k)) as _),
+                    Callback::from(|k| Ok(Box::new(f(k)?) as _)),
+                    Callback::from(|k| Ok(Box::new(f(k)?) as _)),
+                )
+            }
+            Some(v @ 3) => {
+                fn f(key: String) -> Result<impl Encryptor + Decryptor, AttrValue> {
+                    Ok(<_ as Encryptor>::filter(
+                        Playfair::new(key.as_bytes())?,
+                        |b| matches!(b as char, 'A'..='Z' | 'a'..='z'),
+                    ))
+                }
+
+                (
+                    v,
+                    Callback::from(|k| Ok(Box::new(f(k)?) as _)),
+                    Callback::from(|k| Ok(Box::new(f(k)?) as _)),
                 )
             }
             _ => {
-                fn f(key: String) -> impl Encryptor + Decryptor {
-                    <_ as Encryptor>::filter(
-                        Vignere::new(key.as_bytes()),
+                fn f(key: String) -> Result<impl Encryptor + Decryptor, AttrValue> {
+                    Ok(<_ as Encryptor>::filter(
+                        Vignere::new(key.as_bytes())?,
                         |b| matches!(b as char, 'A'..='Z' | 'a'..='z'),
-                    )
+                    ))
                 }
 
                 (
                     0,
-                    Callback::from(|k| Box::new(f(k)) as _),
-                    Callback::from(|k| Box::new(f(k)) as _),
+                    Callback::from(|k| Ok(Box::new(f(k)?) as _)),
+                    Callback::from(|k| Ok(Box::new(f(k)?) as _)),
                 )
             }
         };

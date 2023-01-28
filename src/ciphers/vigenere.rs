@@ -17,8 +17,12 @@ pub struct Vignere {
 }
 
 impl Vignere {
-    pub fn new(key: &[u8]) -> Self {
-        Self {
+    pub fn new(key: &[u8]) -> Result<Self, &'static str> {
+        if key.len() == 0 {
+            return Err("key cannot be empty");
+        }
+
+        Ok(Self {
             key: Vec::from_iter(key.iter().filter_map(|&b| match b {
                 A_UPPER..=Z_UPPER => Some(b - A_UPPER),
                 A_LOWER..=Z_LOWER => Some(b - A_LOWER),
@@ -27,7 +31,7 @@ impl Vignere {
 
             count: 0,
             temp: <_>::default(),
-        }
+        })
     }
 }
 
@@ -94,12 +98,16 @@ pub struct Vignere256 {
 }
 
 impl Vignere256 {
-    pub fn new(key: &[u8]) -> Self {
-        Self {
+    pub fn new(key: &[u8]) -> Result<Self, &'static str> {
+        if key.len() == 0 {
+            return Err("key cannot be empty");
+        }
+
+        Ok(Self {
             key: Vec::from(key),
             offset: 0,
             temp: 0,
-        }
+        })
     }
 }
 
@@ -146,8 +154,12 @@ pub struct VignereAutokey {
 }
 
 impl VignereAutokey {
-    pub fn new(key: &[u8]) -> Self {
-        Self {
+    pub fn new(key: &[u8]) -> Result<Self, &'static str> {
+        if key.len() == 0 {
+            return Err("key cannot be empty");
+        }
+
+        Ok(Self {
             key: Vec::from_iter(key.iter().filter_map(|&b| match b {
                 A_UPPER..=Z_UPPER => Some(b - A_UPPER),
                 A_LOWER..=Z_LOWER => Some(b - A_LOWER),
@@ -156,7 +168,7 @@ impl VignereAutokey {
 
             count: 0,
             temp: <_>::default(),
-        }
+        })
     }
 }
 
