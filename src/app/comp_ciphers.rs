@@ -289,7 +289,13 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
 
 #[function_component(CipherVigenere)]
 pub fn cipher_vigenere() -> Html {
-    fn f(key: String) -> Result<impl Encryptor + Decryptor, AttrValue> {
+    fn f(input: &NodeRef) -> Result<impl Encryptor + Decryptor, AttrValue> {
+        let key = if let Some(input) = input.cast::<HtmlInputElement>() {
+            input.value()
+        } else {
+            return Err(AttrValue::from("internal error"));
+        };
+
         Ok(<_ as Encryptor>::filter(
             Vignere::new(key.as_bytes())?,
             |b| matches!(b as char, 'A'..='Z' | 'a'..='z'),
@@ -300,23 +306,11 @@ pub fn cipher_vigenere() -> Html {
 
     let cb_e = {
         let input = input.clone();
-        Callback::from(move |()| {
-            if let Some(input) = input.cast::<HtmlInputElement>() {
-                Ok(Box::new(f(input.value())?) as _)
-            } else {
-                Err(AttrValue::from("internal error"))
-            }
-        })
+        Callback::from(move |()| Ok(Box::new(f(&input)?) as _))
     };
     let cb_d = {
         let input = input.clone();
-        Callback::from(move |()| {
-            if let Some(input) = input.cast::<HtmlInputElement>() {
-                Ok(Box::new(f(input.value())?) as _)
-            } else {
-                Err(AttrValue::from("internal error"))
-            }
-        })
+        Callback::from(move |()| Ok(Box::new(f(&input)?) as _))
     };
 
     html! {
@@ -329,7 +323,13 @@ pub fn cipher_vigenere() -> Html {
 
 #[function_component(CipherVigenere256)]
 pub fn cipher_vigenere256() -> Html {
-    fn f(key: String) -> Result<impl Encryptor + Decryptor, AttrValue> {
+    fn f(input: &NodeRef) -> Result<impl Encryptor + Decryptor, AttrValue> {
+        let key = if let Some(input) = input.cast::<HtmlInputElement>() {
+            input.value()
+        } else {
+            return Err(AttrValue::from("internal error"));
+        };
+
         Ok(Vignere256::new(key.as_bytes())?)
     }
 
@@ -337,23 +337,11 @@ pub fn cipher_vigenere256() -> Html {
 
     let cb_e = {
         let input = input.clone();
-        Callback::from(move |()| {
-            if let Some(input) = input.cast::<HtmlInputElement>() {
-                Ok(Box::new(f(input.value())?) as _)
-            } else {
-                Err(AttrValue::from("internal error"))
-            }
-        })
+        Callback::from(move |()| Ok(Box::new(f(&input)?) as _))
     };
     let cb_d = {
         let input = input.clone();
-        Callback::from(move |()| {
-            if let Some(input) = input.cast::<HtmlInputElement>() {
-                Ok(Box::new(f(input.value())?) as _)
-            } else {
-                Err(AttrValue::from("internal error"))
-            }
-        })
+        Callback::from(move |()| Ok(Box::new(f(&input)?) as _))
     };
 
     html! {
@@ -366,7 +354,13 @@ pub fn cipher_vigenere256() -> Html {
 
 #[function_component(CipherVigenereAutokey)]
 pub fn cipher_vigenere_autokey() -> Html {
-    fn f(key: String) -> Result<impl Encryptor + Decryptor, AttrValue> {
+    fn f(input: &NodeRef) -> Result<impl Encryptor + Decryptor, AttrValue> {
+        let key = if let Some(input) = input.cast::<HtmlInputElement>() {
+            input.value()
+        } else {
+            return Err(AttrValue::from("internal error"));
+        };
+
         Ok(<_ as Encryptor>::filter(
             VignereAutokey::new(key.as_bytes())?,
             |b| matches!(b as char, 'A'..='Z' | 'a'..='z'),
@@ -377,23 +371,11 @@ pub fn cipher_vigenere_autokey() -> Html {
 
     let cb_e = {
         let input = input.clone();
-        Callback::from(move |()| {
-            if let Some(input) = input.cast::<HtmlInputElement>() {
-                Ok(Box::new(f(input.value())?) as _)
-            } else {
-                Err(AttrValue::from("internal error"))
-            }
-        })
+        Callback::from(move |()| Ok(Box::new(f(&input)?) as _))
     };
     let cb_d = {
         let input = input.clone();
-        Callback::from(move |()| {
-            if let Some(input) = input.cast::<HtmlInputElement>() {
-                Ok(Box::new(f(input.value())?) as _)
-            } else {
-                Err(AttrValue::from("internal error"))
-            }
-        })
+        Callback::from(move |()| Ok(Box::new(f(&input)?) as _))
     };
 
     html! {
@@ -406,7 +388,13 @@ pub fn cipher_vigenere_autokey() -> Html {
 
 #[function_component(CipherPlayfair)]
 pub fn cipher_playfair() -> Html {
-    fn f(key: String) -> Result<impl Encryptor + Decryptor, AttrValue> {
+    fn f(input: &NodeRef) -> Result<impl Encryptor + Decryptor, AttrValue> {
+        let key = if let Some(input) = input.cast::<HtmlInputElement>() {
+            input.value()
+        } else {
+            return Err(AttrValue::from("internal error"));
+        };
+
         Ok(<_ as Encryptor>::filter(
             Playfair::new(key.as_bytes())?,
             |b| matches!(b as char, 'A'..='Z' | 'a'..='z'),
@@ -417,23 +405,11 @@ pub fn cipher_playfair() -> Html {
 
     let cb_e = {
         let input = input.clone();
-        Callback::from(move |()| {
-            if let Some(input) = input.cast::<HtmlInputElement>() {
-                Ok(Box::new(f(input.value())?) as _)
-            } else {
-                Err(AttrValue::from("internal error"))
-            }
-        })
+        Callback::from(move |()| Ok(Box::new(f(&input)?) as _))
     };
     let cb_d = {
         let input = input.clone();
-        Callback::from(move |()| {
-            if let Some(input) = input.cast::<HtmlInputElement>() {
-                Ok(Box::new(f(input.value())?) as _)
-            } else {
-                Err(AttrValue::from("internal error"))
-            }
-        })
+        Callback::from(move |()| Ok(Box::new(f(&input)?) as _))
     };
 
     html! {
