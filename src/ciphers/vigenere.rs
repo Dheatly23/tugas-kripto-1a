@@ -50,14 +50,18 @@ impl Encryptor for Vignere {
         self.count += 1;
 
         self.temp[1] = byte;
-        if self.count % (5 * 12) == 0 {
-            self.temp[0] = '\n' as _;
-            Ok(&self.temp)
-        } else if self.count % 5 == 0 {
-            self.temp[0] = ' ' as _;
-            Ok(&self.temp)
+
+        let nl: u8 = if (self.count / 5) % 12 == 0 {
+            '\n' as _
         } else {
-            Ok(&self.temp[1..])
+            ' ' as _
+        };
+        match self.count % 5 {
+            1 if self.count != 1 => {
+                self.temp[0] = nl;
+                Ok(&self.temp)
+            }
+            _ => Ok(&self.temp[1..]),
         }
     }
 
@@ -189,14 +193,18 @@ impl Encryptor for VignereAutokey {
         self.count += 1;
 
         self.temp[1] = byte;
-        if self.count % (5 * 12) == 0 {
-            self.temp[0] = '\n' as _;
-            Ok(&self.temp)
-        } else if self.count % 5 == 0 {
-            self.temp[0] = ' ' as _;
-            Ok(&self.temp)
+
+        let nl: u8 = if (self.count / 5) % 12 == 0 {
+            '\n' as _
         } else {
-            Ok(&self.temp[1..])
+            ' ' as _
+        };
+        match self.count % 5 {
+            1 if self.count != 1 => {
+                self.temp[0] = nl;
+                Ok(&self.temp)
+            }
+            _ => Ok(&self.temp[1..]),
         }
     }
 
