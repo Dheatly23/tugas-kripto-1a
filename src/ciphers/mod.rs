@@ -1,9 +1,11 @@
+pub mod playfair;
 pub mod vigenere;
 
 use std::marker::PhantomData;
 use std::mem;
 use std::{fmt, ptr, slice};
 
+pub use playfair::*;
 pub use vigenere::*;
 
 pub struct CipherError(PhantomData<()>);
