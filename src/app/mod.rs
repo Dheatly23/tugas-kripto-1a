@@ -67,6 +67,7 @@ pub fn app() -> Html {
         "Vigenere (8-bit)",
         "Playfair",
         "Affine",
+        "Hill",
     ]
     .into_iter()
     .map(AttrValue::from)
@@ -85,6 +86,9 @@ pub fn app() -> Html {
             },
             Some(4) => html! {
                 <CipherAffine key={ 4 } />
+            },
+            Some(5) => html! {
+                <CipherHill key={ 5 } />
             },
             _ => html! {
                 <CipherVigenere key={ 0 } />

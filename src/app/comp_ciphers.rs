@@ -4,6 +4,7 @@ use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
 use crate::ciphers::*;
+use crate::parsers::{mat3x3, trimmed};
 
 #[derive(Properties, PartialEq)]
 pub struct CipherBoxProps {
@@ -462,6 +463,48 @@ pub fn cipher_affine() -> Html {
             <input ref={ input_m } type="number" min="1" max="25" value="1" />
             <label> { "N:" } </label>
             <input ref={ input_n } type="number" min="0" max="25" value="0" />
+        </CipherBox>
+    }
+}
+
+#[function_component(CipherHill)]
+pub fn cipher_hill() -> Html {
+    fn f(input: &NodeRef) -> Result<impl Encryptor + Decryptor, AttrValue> {
+        let key;
+        if let Some(input) = input.cast::<HtmlInputElement>() {
+            let s = input.value();
+            if let Ok((_, v)) = trimmed(mat3x3)(&s) {
+                key = v;
+            } else {
+                return Err(AttrValue::from("cannot convert key"));
+            }
+            drop(s);
+        } else {
+            return Err(AttrValue::from("internal error"));
+        }
+
+        Ok(<_ as Encryptor>::filter(
+            Hill::new(key)?,
+            |b| matches!(b as char, 'A'..='Z' | 'a'..='z'),
+        ))
+    }
+
+    let input = use_node_ref();
+
+    let cb_e = {
+        let input = input.clone();
+        Callback::from(move |()| Ok(Box::new(f(&input)?) as _))
+    };
+    let cb_d = {
+        let input = input.clone();
+        Callback::from(move |()| Ok(Box::new(f(&input)?) as _))
+    };
+
+    html! {
+        <CipherBox encryptor={ cb_e } decryptor={ cb_d }>
+            <label> { "Matrix 3x3:" } </label>
+            <input ref={ input } />
+            <label style="grid-column: 1 / -1;"> { "Eg: 17 17 5 21 18 21 2 2 19" } </label>
         </CipherBox>
     }
 }

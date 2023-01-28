@@ -1,4 +1,5 @@
 pub mod affine;
+pub mod hill;
 pub mod playfair;
 pub mod vigenere;
 
@@ -7,6 +8,7 @@ use std::mem;
 use std::{fmt, ptr, slice};
 
 pub use affine::*;
+pub use hill::*;
 pub use playfair::*;
 pub use vigenere::*;
 
