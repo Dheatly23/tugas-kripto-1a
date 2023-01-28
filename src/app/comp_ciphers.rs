@@ -6,64 +6,11 @@ use yew::prelude::*;
 use crate::ciphers::*;
 
 #[derive(Properties, PartialEq)]
-pub struct TitleBarProps {
-    title: AttrValue,
-}
-
-#[function_component(TitleBar)]
-pub fn title_bar(props: &TitleBarProps) -> Html {
-    html!(
-        <h1> {props.title.clone()} </h1>
-    )
-}
-
-#[derive(Properties, PartialEq)]
-pub struct TabbedDialogProps {
-    tabs: Vec<AttrValue>,
-    cb: Callback<Option<usize>, Html>,
-}
-
-#[function_component(TabbedDialogue)]
-pub fn tabbed_dialog(props: &TabbedDialogProps) -> Html {
-    let selected_tab = use_state_eq(|| None);
-
-    let tabs: Vec<_> = props
-        .tabs
-        .iter()
-        .enumerate()
-        .map(|(i, v)| {
-            let selected =
-                selected_tab.and_then(|j| if i == j { Some("selected_tab") } else { None });
-
-            let selected_tab = selected_tab.clone();
-            let on_click = Callback::from(move |_| selected_tab.set(Some(i)));
-
-            html! {
-                <button onclick={ on_click } class={ classes!(selected) }>
-                    { v }
-                </button>
-            }
-        })
-        .collect();
-
-    let body = props.cb.emit(*selected_tab);
-
-    html! {
-        <div class="tabbed_dialog">
-            <div class="header">
-                { tabs }
-            </div>
-            <div class="tab">
-                { body }
-            </div>
-        </div>
-    }
-}
-
-#[derive(Properties, PartialEq)]
 pub struct CipherBoxProps {
-    encryptor: Callback<String, Result<Box<dyn Encryptor>, AttrValue>>,
-    decryptor: Callback<String, Result<Box<dyn Decryptor>, AttrValue>>,
+    encryptor: Callback<(), Result<Box<dyn Encryptor>, AttrValue>>,
+    decryptor: Callback<(), Result<Box<dyn Decryptor>, AttrValue>>,
+
+    pub children: Children,
 }
 
 #[function_component(CipherBox)]
@@ -131,14 +78,12 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
     }
 
     let file_input = use_node_ref();
-    let input = use_node_ref();
     let textbox = use_node_ref();
     let output = use_node_ref();
 
     let err_happened = use_state_eq(|| false);
 
     let encrypt_ = {
-        let input = input.clone();
         let textbox = textbox.clone();
         let output = output.clone();
         let err_happened = err_happened.setter();
@@ -146,13 +91,11 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
         let encryptor = props.encryptor.clone();
 
         Callback::from(move |_| {
-            if let (Some(input), Some(textbox), Some(output)) = (
-                input.cast::<HtmlInputElement>(),
+            if let (Some(textbox), Some(output)) = (
                 textbox.cast::<HtmlTextAreaElement>(),
                 output.cast::<HtmlTextAreaElement>(),
             ) {
-                let key = input.value();
-                let e = match encryptor.emit(key) {
+                let e = match encryptor.emit(()) {
                     Ok(v) => v,
                     Err(e) => {
                         err_happened.set(true);
@@ -174,7 +117,6 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
     };
 
     let decrypt_ = {
-        let input = input.clone();
         let textbox = textbox.clone();
         let output = output.clone();
         let err_happened = err_happened.setter();
@@ -182,13 +124,11 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
         let decryptor = props.decryptor.clone();
 
         Callback::from(move |_| {
-            if let (Some(input), Some(textbox), Some(output)) = (
-                input.cast::<HtmlInputElement>(),
+            if let (Some(textbox), Some(output)) = (
                 textbox.cast::<HtmlTextAreaElement>(),
                 output.cast::<HtmlTextAreaElement>(),
             ) {
-                let key = input.value();
-                let d = match decryptor.emit(key) {
+                let d = match decryptor.emit(()) {
                     Ok(v) => v,
                     Err(e) => {
                         err_happened.set(true);
@@ -245,7 +185,6 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
 
     let execute_file = {
         let file_input = file_input.clone();
-        let input = input.clone();
         let textbox = textbox.clone();
         let output = output.clone();
         let err_happened = err_happened.setter();
@@ -259,9 +198,8 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
             move |_, operator| {
                 let operator = **operator;
 
-                let (Some(file_input), Some(input), Some(textbox), Some(output)) = (
+                let (Some(file_input), Some(textbox), Some(output)) = (
                     file_input.cast::<HtmlInputElement>(),
-                    input.cast::<HtmlInputElement>(),
                     textbox.cast::<HtmlTextAreaElement>(),
                     output.cast::<HtmlTextAreaElement>(),
                 ) else {return};
@@ -273,8 +211,6 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
                     },
                     None => return,
                 };
-
-                let key = input.value();
 
                 let encryptor = encryptor.clone();
                 let decryptor = decryptor.clone();
@@ -293,7 +229,7 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
 
                     let out = match operator {
                         Operator::Encrypt => encrypt(
-                            match encryptor.emit(key) {
+                            match encryptor.emit(()) {
                                 Ok(v) => v,
                                 Err(e) => {
                                     err_happened.set(true);
@@ -304,7 +240,7 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
                             data.into_iter(),
                         ),
                         Operator::Decrypt => decrypt(
-                            match decryptor.emit(key) {
+                            match decryptor.emit(()) {
                                 Ok(v) => v,
                                 Err(e) => {
                                     err_happened.set(true);
@@ -331,8 +267,7 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
     html! {
         <div class="cipher_box">
             <div class="key_container">
-                <label> { "Key:" } </label>
-                <input ref={input} />
+                { for props.children.iter() }
             </div>
             <textarea ref={textbox} cols=80 rows=10/>
             <textarea ref={output}
@@ -352,94 +287,159 @@ pub fn cipher_box(props: &CipherBoxProps) -> Html {
     }
 }
 
-#[function_component(App)]
-pub fn app() -> Html {
-    let tabs: Vec<_> = [
-        "Vigenere",
-        "Vigenere (Autokey)",
-        "Vigenere (8-bit)",
-        "Playfair",
-    ]
-    .into_iter()
-    .map(AttrValue::from)
-    .collect();
-    let tab_body = Callback::from(|v: Option<usize>| -> Html {
-        let (v, cb_e, cb_d): (
-            _,
-            Callback<String, Result<Box<dyn Encryptor>, AttrValue>>,
-            Callback<String, Result<Box<dyn Decryptor>, AttrValue>>,
-        ) = match v {
-            Some(v @ 1) => {
-                fn f(key: String) -> Result<impl Encryptor + Decryptor, AttrValue> {
-                    Ok(<_ as Encryptor>::filter(
-                        VignereAutokey::new(key.as_bytes())?,
-                        |b| matches!(b as char, 'A'..='Z' | 'a'..='z'),
-                    ))
-                }
+#[function_component(CipherVigenere)]
+pub fn cipher_vigenere() -> Html {
+    fn f(key: String) -> Result<impl Encryptor + Decryptor, AttrValue> {
+        Ok(<_ as Encryptor>::filter(
+            Vignere::new(key.as_bytes())?,
+            |b| matches!(b as char, 'A'..='Z' | 'a'..='z'),
+        ))
+    }
 
-                (
-                    v,
-                    Callback::from(|k| Ok(Box::new(f(k)?) as _)),
-                    Callback::from(|k| Ok(Box::new(f(k)?) as _)),
-                )
+    let input = use_node_ref();
+
+    let cb_e = {
+        let input = input.clone();
+        Callback::from(move |()| {
+            if let Some(input) = input.cast::<HtmlInputElement>() {
+                Ok(Box::new(f(input.value())?) as _)
+            } else {
+                Err(AttrValue::from("internal error"))
             }
-            Some(v @ 2) => {
-                fn f(key: String) -> Result<impl Encryptor + Decryptor, AttrValue> {
-                    Ok(Vignere256::new(key.as_bytes())?)
-                }
-
-                (
-                    v,
-                    Callback::from(|k| Ok(Box::new(f(k)?) as _)),
-                    Callback::from(|k| Ok(Box::new(f(k)?) as _)),
-                )
+        })
+    };
+    let cb_d = {
+        let input = input.clone();
+        Callback::from(move |()| {
+            if let Some(input) = input.cast::<HtmlInputElement>() {
+                Ok(Box::new(f(input.value())?) as _)
+            } else {
+                Err(AttrValue::from("internal error"))
             }
-            Some(v @ 3) => {
-                fn f(key: String) -> Result<impl Encryptor + Decryptor, AttrValue> {
-                    Ok(<_ as Encryptor>::filter(
-                        Playfair::new(key.as_bytes())?,
-                        |b| matches!(b as char, 'A'..='Z' | 'a'..='z'),
-                    ))
-                }
-
-                (
-                    v,
-                    Callback::from(|k| Ok(Box::new(f(k)?) as _)),
-                    Callback::from(|k| Ok(Box::new(f(k)?) as _)),
-                )
-            }
-            _ => {
-                fn f(key: String) -> Result<impl Encryptor + Decryptor, AttrValue> {
-                    Ok(<_ as Encryptor>::filter(
-                        Vignere::new(key.as_bytes())?,
-                        |b| matches!(b as char, 'A'..='Z' | 'a'..='z'),
-                    ))
-                }
-
-                (
-                    0,
-                    Callback::from(|k| Ok(Box::new(f(k)?) as _)),
-                    Callback::from(|k| Ok(Box::new(f(k)?) as _)),
-                )
-            }
-        };
-
-        html! {
-            <CipherBox
-                key={ v }
-                encryptor={ cb_e }
-                decryptor={ cb_d }
-            />
-        }
-    });
+        })
+    };
 
     html! {
-        <main>
-            <TitleBar title="Title Bar" />
-            <TabbedDialogue
-                tabs={ tabs }
-                cb={ tab_body }
-            />
-        </main>
+        <CipherBox encryptor={ cb_e } decryptor={ cb_d }>
+            <label> { "Key:" } </label>
+            <input ref={ input } />
+        </CipherBox>
+    }
+}
+
+#[function_component(CipherVigenere256)]
+pub fn cipher_vigenere256() -> Html {
+    fn f(key: String) -> Result<impl Encryptor + Decryptor, AttrValue> {
+        Ok(Vignere256::new(key.as_bytes())?)
+    }
+
+    let input = use_node_ref();
+
+    let cb_e = {
+        let input = input.clone();
+        Callback::from(move |()| {
+            if let Some(input) = input.cast::<HtmlInputElement>() {
+                Ok(Box::new(f(input.value())?) as _)
+            } else {
+                Err(AttrValue::from("internal error"))
+            }
+        })
+    };
+    let cb_d = {
+        let input = input.clone();
+        Callback::from(move |()| {
+            if let Some(input) = input.cast::<HtmlInputElement>() {
+                Ok(Box::new(f(input.value())?) as _)
+            } else {
+                Err(AttrValue::from("internal error"))
+            }
+        })
+    };
+
+    html! {
+        <CipherBox encryptor={ cb_e } decryptor={ cb_d }>
+            <label> { "Key:" } </label>
+            <input ref={ input } />
+        </CipherBox>
+    }
+}
+
+#[function_component(CipherVigenereAutokey)]
+pub fn cipher_vigenere_autokey() -> Html {
+    fn f(key: String) -> Result<impl Encryptor + Decryptor, AttrValue> {
+        Ok(<_ as Encryptor>::filter(
+            VignereAutokey::new(key.as_bytes())?,
+            |b| matches!(b as char, 'A'..='Z' | 'a'..='z'),
+        ))
+    }
+
+    let input = use_node_ref();
+
+    let cb_e = {
+        let input = input.clone();
+        Callback::from(move |()| {
+            if let Some(input) = input.cast::<HtmlInputElement>() {
+                Ok(Box::new(f(input.value())?) as _)
+            } else {
+                Err(AttrValue::from("internal error"))
+            }
+        })
+    };
+    let cb_d = {
+        let input = input.clone();
+        Callback::from(move |()| {
+            if let Some(input) = input.cast::<HtmlInputElement>() {
+                Ok(Box::new(f(input.value())?) as _)
+            } else {
+                Err(AttrValue::from("internal error"))
+            }
+        })
+    };
+
+    html! {
+        <CipherBox encryptor={ cb_e } decryptor={ cb_d }>
+            <label> { "Key:" } </label>
+            <input ref={ input } />
+        </CipherBox>
+    }
+}
+
+#[function_component(CipherPlayfair)]
+pub fn cipher_playfair() -> Html {
+    fn f(key: String) -> Result<impl Encryptor + Decryptor, AttrValue> {
+        Ok(<_ as Encryptor>::filter(
+            Playfair::new(key.as_bytes())?,
+            |b| matches!(b as char, 'A'..='Z' | 'a'..='z'),
+        ))
+    }
+
+    let input = use_node_ref();
+
+    let cb_e = {
+        let input = input.clone();
+        Callback::from(move |()| {
+            if let Some(input) = input.cast::<HtmlInputElement>() {
+                Ok(Box::new(f(input.value())?) as _)
+            } else {
+                Err(AttrValue::from("internal error"))
+            }
+        })
+    };
+    let cb_d = {
+        let input = input.clone();
+        Callback::from(move |()| {
+            if let Some(input) = input.cast::<HtmlInputElement>() {
+                Ok(Box::new(f(input.value())?) as _)
+            } else {
+                Err(AttrValue::from("internal error"))
+            }
+        })
+    };
+
+    html! {
+        <CipherBox encryptor={ cb_e } decryptor={ cb_d }>
+            <label> { "Key:" } </label>
+            <input ref={ input } />
+        </CipherBox>
     }
 }
