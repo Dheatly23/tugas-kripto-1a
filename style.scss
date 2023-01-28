@@ -51,18 +51,22 @@
 }
 
 .cipher_box {
-  padding: 10px;
+  $box-padding: 10px;
 
   > .key_container {
     > input {
-      margin-left: 30px;
-      width: 100%;
+      &:invalid {
+        background: #FFCCCC;
+        border-color: #CC0000;
+      }
 
       font-family: monospace;
     }
 
-    display: flex;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: min-content 1fr;
+    grid-auto-rows: 1fr;
+    gap: 10px 2em;
   }
 
   > .action_container {
@@ -77,7 +81,7 @@
   }
 
   > textarea {
-    width: 100%;
+    width: calc(100% - $box-padding);
     min-width: min-content;
 
     &.error {
@@ -96,4 +100,6 @@
   > :not(:first-child) {
     margin-top: 10px;
   }
+
+  padding: $box-padding;
 }

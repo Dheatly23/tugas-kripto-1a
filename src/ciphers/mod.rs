@@ -1,3 +1,4 @@
+pub mod affine;
 pub mod playfair;
 pub mod vigenere;
 
@@ -5,6 +6,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::{fmt, ptr, slice};
 
+pub use affine::*;
 pub use playfair::*;
 pub use vigenere::*;
 

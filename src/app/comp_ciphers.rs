@@ -419,3 +419,49 @@ pub fn cipher_playfair() -> Html {
         </CipherBox>
     }
 }
+
+#[function_component(CipherAffine)]
+pub fn cipher_affine() -> Html {
+    fn f(m: &NodeRef, n: &NodeRef) -> Result<impl Encryptor + Decryptor, AttrValue> {
+        let (m, n) = if let (Some(m), Some(n)) =
+            (m.cast::<HtmlInputElement>(), n.cast::<HtmlInputElement>())
+        {
+            match u8::from_str_radix(m.value().trim(), 10)
+                .and_then(|m| Ok((m, u8::from_str_radix(n.value().trim(), 10)?)))
+            {
+                Ok(v) => v,
+                Err(e) => return Err(<_>::from(e.to_string())),
+            }
+        } else {
+            return Err(AttrValue::from("internal error"));
+        };
+
+        Ok(<_ as Encryptor>::filter(
+            Affine::new(m, n)?,
+            |b| matches!(b as char, 'A'..='Z' | 'a'..='z'),
+        ))
+    }
+
+    let input_m = use_node_ref();
+    let input_n = use_node_ref();
+
+    let cb_e = {
+        let input_m = input_m.clone();
+        let input_n = input_n.clone();
+        Callback::from(move |()| Ok(Box::new(f(&input_m, &input_n)?) as _))
+    };
+    let cb_d = {
+        let input_m = input_m.clone();
+        let input_n = input_n.clone();
+        Callback::from(move |()| Ok(Box::new(f(&input_m, &input_n)?) as _))
+    };
+
+    html! {
+        <CipherBox encryptor={ cb_e } decryptor={ cb_d }>
+            <label> { "M:" } </label>
+            <input ref={ input_m } type="number" min="1" max="25" value="1" />
+            <label> { "N:" } </label>
+            <input ref={ input_n } type="number" min="0" max="25" value="0" />
+        </CipherBox>
+    }
+}
