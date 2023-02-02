@@ -1,6 +1,7 @@
 mod app;
 mod ciphers;
 mod parsers;
+mod util;
 
 use app::App;
 

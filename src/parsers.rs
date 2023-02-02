@@ -1,7 +1,7 @@
 use nom::character::complete::{char as character, digit1, multispace0, multispace1};
-use nom::combinator::{all_consuming, map, map_res, recognize};
-use nom::multi::{many0_count, many1_count};
-use nom::sequence::{delimited, terminated, tuple};
+use nom::combinator::{all_consuming, map_res, recognize};
+use nom::multi::{many0_count, many1_count, separated_list1};
+use nom::sequence::{delimited, terminated};
 use nom::IResult;
 
 pub fn unsigned_8(s: &str) -> IResult<&str, u8> {
@@ -11,21 +11,8 @@ pub fn unsigned_8(s: &str) -> IResult<&str, u8> {
     )(s)
 }
 
-pub fn mat3x3(s: &str) -> IResult<&str, [u8; 9]> {
-    map(
-        tuple((
-            terminated(unsigned_8, multispace1),
-            terminated(unsigned_8, multispace1),
-            terminated(unsigned_8, multispace1),
-            terminated(unsigned_8, multispace1),
-            terminated(unsigned_8, multispace1),
-            terminated(unsigned_8, multispace1),
-            terminated(unsigned_8, multispace1),
-            terminated(unsigned_8, multispace1),
-            unsigned_8,
-        )),
-        |(a, b, c, d, e, f, g, h, i)| [a, b, c, d, e, f, g, h, i],
-    )(s)
+pub fn list_u8(s: &str) -> IResult<&str, Vec<u8>> {
+    trimmed(separated_list1(multispace1, unsigned_8))(s)
 }
 
 pub fn trimmed<'a, O>(

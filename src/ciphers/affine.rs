@@ -1,5 +1,6 @@
-use num_integer::Integer;
 use yew::AttrValue;
+
+use crate::util::ModuloU8;
 
 use super::{CipherError, Decryptor, Encryptor};
 
@@ -12,9 +13,9 @@ const MODULO: u8 = Z_UPPER - A_UPPER + 1;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Affine {
-    m: u8,
-    n: u8,
-    m_inv: u8,
+    m: ModuloU8<MODULO>,
+    n: ModuloU8<MODULO>,
+    m_inv: ModuloU8<MODULO>,
 
     count: usize,
     temp: [u8; 2],
@@ -25,17 +26,12 @@ impl Affine {
         if m == 0 {
             return Err(<_>::from("m is 0"));
         }
-        let v = ((m % MODULO) as i8).extended_gcd(&(MODULO as i8));
-        if v.gcd != 1 {
-            return Err(<_>::from(format!(
-                "{} has common factor {} with {}",
-                m, v.gcd, MODULO
-            )));
-        }
-        let m_inv = v.x.rem_euclid(MODULO as _) as u8;
-        let n = n % MODULO;
-
-        debug_assert_eq!((m as u32 * m_inv as u32) % MODULO as u32, 1);
+        let m = <ModuloU8<MODULO>>::from(m);
+        let m_inv = match m.inverse() {
+            Ok(v) => v,
+            Err(e) => return Err(<_>::from(format!("{}", e))),
+        };
+        let n = <_>::from(n);
 
         Ok(Self {
             m,
@@ -55,7 +51,7 @@ impl Encryptor for Affine {
             v @ A_LOWER..=Z_LOWER => v - A_LOWER,
             _ => return Err(CipherError::new()),
         };
-        byte = ((byte as i32 * self.m as i32) + self.n as i32).rem_euclid(MODULO as _) as u8;
+        byte = (self.m * byte.into() + self.n).into();
         self.count += 1;
 
         self.temp[1] = byte + A_UPPER;
@@ -86,7 +82,7 @@ impl Decryptor for Affine {
             v @ A_LOWER..=Z_LOWER => v - A_LOWER,
             _ => return Err(CipherError::new()),
         };
-        byte = ((byte as i32 - self.n as i32) * self.m_inv as i32).rem_euclid(MODULO as _) as u8;
+        byte = ((self.n - byte.into()) * self.m_inv).into();
         self.count += 1;
 
         self.temp[0] = byte + A_UPPER;

@@ -4,7 +4,7 @@ use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::prelude::*;
 
 use crate::ciphers::*;
-use crate::parsers::{mat3x3, trimmed};
+use crate::parsers::list_u8;
 
 #[derive(Properties, PartialEq)]
 pub struct CipherBoxProps {
@@ -473,7 +473,7 @@ pub fn cipher_hill() -> Html {
         let key;
         if let Some(input) = input.cast::<HtmlInputElement>() {
             let s = input.value();
-            if let Ok((_, v)) = trimmed(mat3x3)(&s) {
+            if let Ok((_, v)) = list_u8(&s) {
                 key = v;
             } else {
                 return Err(AttrValue::from("cannot convert key"));
@@ -484,7 +484,7 @@ pub fn cipher_hill() -> Html {
         }
 
         Ok(<_ as Encryptor>::filter(
-            Hill::new(key)?,
+            Hill::new(&key)?,
             |b| matches!(b as char, 'A'..='Z' | 'a'..='z'),
         ))
     }
@@ -502,7 +502,7 @@ pub fn cipher_hill() -> Html {
 
     html! {
         <CipherBox encryptor={ cb_e } decryptor={ cb_d }>
-            <label> { "Matrix 3x3:" } </label>
+            <label> { "Square Matrix:" } </label>
             <input ref={ input } />
             <label style="grid-column: 1 / -1;"> { "Eg: 17 17 5 21 18 21 2 2 19" } </label>
         </CipherBox>
